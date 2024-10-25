@@ -1,9 +1,16 @@
 ---
 title: "Lab 5: Murder in SQL City"
-author: "Your name here!"
+author: "Zhixiang He"
 format: html
-editor: source
 embed-resources: true
+code-tools: true
+code-fold: true
+toc: true
+execute: 
+  error: true
+  echo: true
+  message: false
+  warning: false
 ---
 
 For this lab, you will be joining and filtering related datasets to solve a murder mystery!
@@ -57,6 +64,47 @@ Detective Wickham reaches out to you...
 ```{r}
 #| label: inspecting-crime-scene-report
 
+sql_city_crimes <- crime_scene_report |>
+  filter(
+    city == "SQL City",
+    ymd(date) == ymd("20180115")
+  )
+
+# Security footage shows that there were 2 witnesses. The first witness lives at the last house on "Northwestern Dr". The second witness, named Annabel, lives somewhere on "Franklin Ave".
+
+# Hamilton: Lee, do you yield? Burr: You shot him in the side! Yes he yields!
+
+witness_1_interview <- person |>
+  filter(address_street_name == "Northwestern Dr") |>
+  slice_max(order_by = address_number, n = 1) |>
+  inner_join(interview, join_by(id == person_id))
+
+# I heard a gunshot and then saw a man run out. He had a "Get Fit Now Gym" bag. The membership number on the bag started with "48Z". Only gold members have those bags. The man got into a car with a plate that included "H42W".
+
+
+witness_2_interview <- person |>
+  filter(str_detect(name, "Annabel"),
+         address_street_name == "Franklin Ave") |>
+  inner_join(interview, join_by(id == person_id))
+
+# I saw the murder happen, and I recognized the killer from my gym when I was working out last week on January the 9th.
+
+murder <- get_fit_now_member |>
+  filter(startsWith(id, "48Z"),
+         membership_status == "gold") |>
+  inner_join(get_fit_now_check_in, 
+             join_by(id == membership_id)) |>
+  filter(ymd(check_in_date) == ymd("2018-01-09")) |>
+  inner_join(person,
+             join_by(person_id == id)) |>
+  select(name.x, license_id) |>
+  inner_join(drivers_license, 
+             join_by(license_id == id)) |>
+  filter(
+    str_detect(plate_number, "H42W")
+  )
+
+# Jeremy Bowers
 ```
 
 
@@ -67,3 +115,4 @@ Hint: Make sure you check for interviews with any suspects!
 ## And the final suspect is...
 
 *Put the name of the person responsible for the murder here:*
+Jeremy Bowers
